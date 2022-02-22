@@ -10,7 +10,7 @@ namespace NumericalNeuralNetwork.MainPage
         public double[] Weights = new double[COUNT_WEIGHTS];
         public double Brightness { get; set; }
         private const int COUNT_WEIGHTS = 16;
-        private const double LearningRate = 0.001;
+        private const double LearningRate = 0.00001;
 
         public double GiveNextBrightness(int numberNextNeuron)
         {

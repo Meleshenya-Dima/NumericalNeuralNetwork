@@ -32,100 +32,24 @@ namespace NumericalNeuralNetwork
                 string realNumber = filesInfo[numberImage].FullName[^5].ToString();
                 Bitmap imageInNumber = (Bitmap)Image.FromFile(filesInfo[numberImage].FullName);
                 NumberInImage.Image = imageInNumber;
-
-                // Заполнение первых нейронов
-                List<InputNeurons> inputNeurons = GetBrightnessInputNeurons.GetFirstNeurons(imageInNumber);
-                string[] weights = GetSetWeights.GetWeights();
-                int startWeight = 0;
-                for (int i = 0; i < inputNeurons.Count; i++)
-                    startWeight = inputNeurons[i].SetWeights(weights, startWeight);
-
-                // Заполнение вторых нейронов
+                List<InputNeurons> inputNeurons = new List<InputNeurons>();
                 List<FirstHiddenNeurons> firstHiddenNeurons = new List<FirstHiddenNeurons>();
-                for (int i = 0; i < 16; i++)
-                {
-                    double nextBrightness = 0;
-                    for (int j = 0; j < inputNeurons.Count; j++)
-                        nextBrightness += inputNeurons[j].GiveNextBrightness(i);
-                    firstHiddenNeurons.Add(new FirstHiddenNeurons(nextBrightness / 784));
-                }
-                for (int i = 0; i < firstHiddenNeurons.Count; i++)
-                    startWeight = firstHiddenNeurons[i].SetWeights(weights, startWeight);
-
-                // Заполнение третьих нейронов
                 List<SecondHiddenNeurons> secondHiddenNeurons = new List<SecondHiddenNeurons>();
-                for (int i = 0; i < 16; i++)
-                {
-                    double nextBrightness = 0;
-                    for (int j = 0; j < firstHiddenNeurons.Count; j++)
-                        nextBrightness += firstHiddenNeurons[j].GiveNextBrightness(i);
-                    secondHiddenNeurons.Add(new SecondHiddenNeurons(nextBrightness / 16));
-                }
-                for (int i = 0; i < secondHiddenNeurons.Count; i++)
-                    startWeight = secondHiddenNeurons[i].SetWeights(weights, startWeight);
-
-                // Создание последних нейронов
                 List<OutputNeurons> outputNeurons = new List<OutputNeurons>();
-                for (int i = 0; i < 10; i++)
-                {
-                    double nextBrightness = 0;
-                    for (int j = 0; j < secondHiddenNeurons.Count; j++)
-                        nextBrightness += secondHiddenNeurons[j].GiveNextBrightness(i);
-                    outputNeurons.Add(new OutputNeurons(nextBrightness / 10));
-                }
+                (inputNeurons, firstHiddenNeurons, secondHiddenNeurons, outputNeurons) = CreateNeurons.CreateANeuron(imageInNumber);
 
                 // Вывод числа, о котором думает программа
-                double max = 0;
-                int index = 0;
-                for (int i = 0; i < outputNeurons.Count; i++)
-                    if (max < outputNeurons[i].Brightness)
-                    {
-                        index = i;
-                        max = outputNeurons[i].Brightness;
-                    }
-                //MessageBox.Show(index.ToString());
+                int index = CreateNeurons.GetNumber(outputNeurons);
                 if (int.Parse(realNumber) != index)
-                {
-                    // Получение дельт от выходного слоя
-                    List<double> deltasOutputWeights = new List<double>();
-                    for (int i = 0; i < outputNeurons.Count; i++)
-                        deltasOutputWeights.Add(outputNeurons[i].GetDeltas(int.Parse(realNumber), i));
-
-                    // Изменения весов от второго невидимого слоя 
-                    for (int i = 0; i < secondHiddenNeurons.Count; i++)
-                        secondHiddenNeurons[i].Learn(deltasOutputWeights);
-
-                    // Получения дельт от второго невидимого слоя
-                    List<double> deltasSecondHiddenNeuronsWeights = new List<double>();
-                    for (int i = 0; i < secondHiddenNeurons.Count; i++)
-                        deltasSecondHiddenNeuronsWeights.Add(secondHiddenNeurons[i].GetDeltas(secondHiddenNeurons, deltasOutputWeights, i));
-
-                    // Изменения весов от первого невидимого слоя 
-                    for (int i = 0; i < firstHiddenNeurons.Count; i++)
-                        firstHiddenNeurons[i].Learn(deltasSecondHiddenNeuronsWeights);
-
-                    // Получения дельт от первого невидимого слоя
-                    List<double> deltasFirstHiddenNeuronsWeights = new List<double>();
-                    for (int i = 0; i < firstHiddenNeurons.Count; i++)
-                        deltasFirstHiddenNeuronsWeights.Add(firstHiddenNeurons[i].GetDeltas(firstHiddenNeurons, deltasSecondHiddenNeuronsWeights, i));
-
-                    // Изменения весов от входного слоя 
-                    for (int i = 0; i < inputNeurons.Count; i++)
-                        inputNeurons[i].Learn(deltasFirstHiddenNeuronsWeights);
-                    pocolenie++;
-                    GetSetWeights.SetWeights(inputNeurons, firstHiddenNeurons, secondHiddenNeurons);
-                }
-                else
-                {
-                    pocolenie++;
-                }
+                    LearnNeuron.LearnNeurons(inputNeurons, firstHiddenNeurons, secondHiddenNeurons, outputNeurons, realNumber);
+                pocolenie++;
             }
             MessageBox.Show($"Поколение под номером №{pocolenie} закончило обучение");
         }
 
         private void Coincidence_Click(object sender, EventArgs e)
         {
-            DirectoryInfo infoTrainFiles = new(TestPath);
+            DirectoryInfo infoTrainFiles = new(TrainPath);
             FileInfo[] filesInfo = infoTrainFiles.GetFiles();
             Random random = new();
             double countCoincidence = 0;
@@ -136,61 +60,16 @@ namespace NumericalNeuralNetwork
                 string realNumber = filesInfo[numberImage].FullName[^5].ToString();
                 Bitmap imageInNumber = (Bitmap)Image.FromFile(filesInfo[numberImage].FullName);
                 NumberInImage.Image = imageInNumber;
-
-                // Заполнение первых нейронов
-                List<InputNeurons> inputNeurons = GetBrightnessInputNeurons.GetFirstNeurons(imageInNumber);
-                string[] weights = GetSetWeights.GetWeights();
-                int startWeight = 0;
-                for (int i = 0; i < inputNeurons.Count; i++)
-                    startWeight = inputNeurons[i].SetWeights(weights, startWeight);
-
-                // Заполнение вторых нейронов
+                List<InputNeurons> inputNeurons = new List<InputNeurons>();
                 List<FirstHiddenNeurons> firstHiddenNeurons = new List<FirstHiddenNeurons>();
-                for (int i = 0; i < 16; i++)
-                {
-                    double nextBrightness = 0;
-                    for (int j = 0; j < inputNeurons.Count; j++)
-                        nextBrightness += inputNeurons[j].GiveNextBrightness(i);
-                    firstHiddenNeurons.Add(new FirstHiddenNeurons(nextBrightness / 784));
-                }
-                for (int i = 0; i < firstHiddenNeurons.Count; i++)
-                    startWeight = firstHiddenNeurons[i].SetWeights(weights, startWeight);
-
-                // Заполнение третьих нейронов
                 List<SecondHiddenNeurons> secondHiddenNeurons = new List<SecondHiddenNeurons>();
-                for (int i = 0; i < 16; i++)
-                {
-                    double nextBrightness = 0;
-                    for (int j = 0; j < firstHiddenNeurons.Count; j++)
-                        nextBrightness += firstHiddenNeurons[j].GiveNextBrightness(i);
-                    secondHiddenNeurons.Add(new SecondHiddenNeurons(nextBrightness / 16));
-                }
-                for (int i = 0; i < secondHiddenNeurons.Count; i++)
-                    startWeight = secondHiddenNeurons[i].SetWeights(weights, startWeight);
-
-                // Создание последних нейронов
                 List<OutputNeurons> outputNeurons = new List<OutputNeurons>();
-                for (int i = 0; i < 10; i++)
-                {
-                    double nextBrightness = 0;
-                    for (int j = 0; j < secondHiddenNeurons.Count; j++)
-                        nextBrightness += secondHiddenNeurons[j].GiveNextBrightness(i);
-                    outputNeurons.Add(new OutputNeurons(nextBrightness / 16));
-                }
+                (inputNeurons, firstHiddenNeurons, secondHiddenNeurons, outputNeurons ) = CreateNeurons.CreateANeuron(imageInNumber);
 
                 // Вывод числа, о котором думает программа
-                double max = 0;
-                int index = 0;
-                for (int i = 0; i < outputNeurons.Count; i++)
-                    if (max < outputNeurons[i].Brightness)
-                    {
-                        index = i;
-                        max = outputNeurons[i].Brightness;
-                    }
+                int index = CreateNeurons.GetNumber(outputNeurons);
                 if (int.Parse(realNumber) == index)
-                {
                     countCoincidence++;
-                }
                 pocolenie++;
             }
             MessageBox.Show((countCoincidence / pocolenie * 100).ToString() + "% совпадений!");
@@ -205,58 +84,17 @@ namespace NumericalNeuralNetwork
             string realNumber = filesInfo[numberImage].FullName[^5].ToString();
             Bitmap imageInNumber = (Bitmap)Image.FromFile(filesInfo[numberImage].FullName);
             NumberInImage.Image = imageInNumber;
-
-            // Заполнение первых нейронов
-            List<InputNeurons> inputNeurons = GetBrightnessInputNeurons.GetFirstNeurons(imageInNumber);
-            string[] weights = GetSetWeights.GetWeights();
-            int startWeight = 0;
-            for (int i = 0; i < inputNeurons.Count; i++)
-                startWeight = inputNeurons[i].SetWeights(weights, startWeight);
-
-            // Заполнение вторых нейронов
+            List<InputNeurons> inputNeurons = new List<InputNeurons>();
             List<FirstHiddenNeurons> firstHiddenNeurons = new List<FirstHiddenNeurons>();
-            for (int i = 0; i < 16; i++)
-            {
-                double nextBrightness = 0;
-                for (int j = 0; j < inputNeurons.Count; j++)
-                    nextBrightness += inputNeurons[j].GiveNextBrightness(i);
-                firstHiddenNeurons.Add(new FirstHiddenNeurons(nextBrightness / 784));
-            }
-            for (int i = 0; i < firstHiddenNeurons.Count; i++)
-                startWeight = firstHiddenNeurons[i].SetWeights(weights, startWeight);
-
-            // Заполнение третьих нейронов
             List<SecondHiddenNeurons> secondHiddenNeurons = new List<SecondHiddenNeurons>();
-            for (int i = 0; i < 16; i++)
-            {
-                double nextBrightness = 0;
-                for (int j = 0; j < firstHiddenNeurons.Count; j++)
-                    nextBrightness += firstHiddenNeurons[j].GiveNextBrightness(i);
-                secondHiddenNeurons.Add(new SecondHiddenNeurons(nextBrightness / 16));
-            }
-            for (int i = 0; i < secondHiddenNeurons.Count; i++)
-                startWeight = secondHiddenNeurons[i].SetWeights(weights, startWeight);
-
-            // Создание последних нейронов
             List<OutputNeurons> outputNeurons = new List<OutputNeurons>();
-            for (int i = 0; i < 10; i++)
-            {
-                double nextBrightness = 0;
-                for (int j = 0; j < secondHiddenNeurons.Count; j++)
-                    nextBrightness += secondHiddenNeurons[j].GiveNextBrightness(i);
-                outputNeurons.Add(new OutputNeurons(nextBrightness / 16));
-            }
+            (inputNeurons, firstHiddenNeurons, secondHiddenNeurons, outputNeurons) = CreateNeurons.CreateANeuron(imageInNumber);
 
             // Вывод числа, о котором думает программа
-            double max = 0;
-            int index = 0;
-            for (int i = 0; i < outputNeurons.Count; i++)
-                if (max < outputNeurons[i].Brightness)
-                {
-                    index = i;
-                    max = outputNeurons[i].Brightness;
-                }
-            MessageBox.Show($"Мне кажется, что это число {index}...");
+            MessageBox.Show($"Мне кажется, что это число {CreateNeurons.GetNumber(outputNeurons)}...");
+        
         }
+
+        private void Information_Click(object sender, EventArgs e) => MessageBox.Show("Разработчик: Мелещеня Дмитрий Иванович. Учебная группа: 2119.", "Информация о разработчике", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 }

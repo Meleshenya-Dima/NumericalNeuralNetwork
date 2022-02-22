@@ -11,7 +11,7 @@ namespace NumericalNeuralNetwork.WorkWithNeurons
 {
     class GetSetWeights
     {
-        private static string writePath = @"\Weights.txt";
+        private static string writePath = @"C:\Users\meles\Desktop\VS\AllProject\NumericalNeuralNetwork\NumericalNeuralNetwork\Weights.txt";
 
         public static string[] GetWeights()
         {
